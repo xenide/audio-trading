@@ -64,7 +64,6 @@ class AudioEngine {
     this._synth = null;
     this._panner = null;
     this._volume = null;
-    this._priceTracker = new PriceTracker();
     this._scheduler = new NoteScheduler(config.get("maxNotesPerSec"));
 
     config.onChange((key, value) => {
@@ -141,31 +140,13 @@ class AudioEngine {
     if (trade.quantity < this._config.get("minTradeSize")) return;
     if (!this._scheduler.allow()) return;
 
-    this._priceTracker.add(trade.price);
-
-    const freq = this._mapFrequency(trade.price);
+    const freq = trade.isSell ? 293.66 : 440; // D4 for sell, A4 for buy
     const vol = this._mapVolume(trade.quantity);
     const dur = this._mapDuration(trade.quantity);
     const pan = trade.isSell ? -this._config.get("panWidth") : this._config.get("panWidth");
 
     this._panner.pan.value = pan;
     this._synth.triggerAttackRelease(freq, dur, Tone.now(), this._dbToGain(vol));
-  }
-
-  _mapFrequency(price) {
-    const pitchMin = this._config.get("pitchMin");
-    const pitchMax = this._config.get("pitchMax");
-
-    if (this._config.get("pitchMode") === "auto") {
-      const range = this._priceTracker.range();
-      if (!range) return (pitchMin + pitchMax) / 2;
-      const t = (price - range.min) / (range.max - range.min);
-      return pitchMin + Math.max(0, Math.min(1, t)) * (pitchMax - pitchMin);
-    }
-
-    // fixed mode: use price directly with modular mapping
-    const t = (price % 1000) / 1000;
-    return pitchMin + t * (pitchMax - pitchMin);
   }
 
   _mapVolume(quantity) {

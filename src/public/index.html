@@ -35,19 +35,18 @@
   <main>
     <div class="config-panel" id="config-panel"></div>
     <div class="viz-area">
-      <div class="viz-placeholder">
-        Click "Start Audio" to begin sonification<br>
-        Adjust parameters in the left panel
-      </div>
+      <canvas id="viz-canvas"></canvas>
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.min.js"></script>
   <script src="config.js"></script>
   <script src="audio-engine.js"></script>
+  <script src="trade-viz.js"></script>
   <script>
     const config = new ConfigManager();
     const engine = new AudioEngine(config);
+    const viz = new TradeViz(document.getElementById("viz-canvas"));
 
     config.buildUI(document.getElementById("config-panel"));
 
@@ -98,6 +97,7 @@
           elPrice.textContent = trade.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           elSize.textContent = trade.quantity.toFixed(5);
           engine.playTrade(trade);
+          viz.addTrade(trade);
         }
       };
 

@@ -58,7 +58,7 @@ const MIME_TYPES: Record<string, string> = {
 
 const server = Bun.serve<{}>({
   port: PORT,
-  fetch(req, server) {
+  async fetch(req, server) {
     const url = new URL(req.url);
 
     if (url.pathname === "/ws") {
@@ -67,10 +67,11 @@ const server = Bun.serve<{}>({
     }
 
     // static file serving
-    let filePath = url.pathname === "/" ? "/index.html" : url.pathname;
-    const ext = filePath.substring(filePath.lastIndexOf("."));
+    const filePath = url.pathname === "/" ? "/index.html" : url.pathname;
     const file = Bun.file(PUBLIC_DIR + filePath);
+    if (!(await file.exists())) return new Response("Not found", { status: 404 });
 
+    const ext = filePath.substring(filePath.lastIndexOf("."));
     return new Response(file, {
       headers: {
         "Content-Type": MIME_TYPES[ext] || "application/octet-stream",

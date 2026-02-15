@@ -1,12 +1,4 @@
 const CONFIG_SCHEMA = {
-  pitch: {
-    label: "Pitch",
-    params: {
-      pitchMin: { default: 200, min: 50, max: 4000, step: 10, unit: "Hz", label: "Min Frequency" },
-      pitchMax: { default: 1200, min: 50, max: 4000, step: 10, unit: "Hz", label: "Max Frequency" },
-      pitchMode: { default: "auto", options: ["auto", "fixed"], label: "Mode" },
-    },
-  },
   volume: {
     label: "Volume",
     params: {
