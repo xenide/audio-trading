@@ -167,7 +167,7 @@ class AudioEngine {
   }
 
   _scheduleNote(trade, time) {
-    const freq = trade.isSell ? 288.380 : 432.081216;
+    const freq = trade.isSell ? 288.054144 : 432.081216;
     const vol = this._mapVolume(trade.quantity);
     const dur = this._mapDuration(trade.quantity);
     const gain = this._dbToGain(vol);
