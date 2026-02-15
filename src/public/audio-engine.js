@@ -34,43 +34,23 @@ class PriceTracker {
   }
 }
 
-class NoteScheduler {
-  constructor(maxPerSec) {
-    this._maxPerSec = maxPerSec;
-    this._timestamps = [];
-  }
-
-  set maxPerSec(v) {
-    this._maxPerSec = v;
-  }
-
-  allow() {
-    const now = Date.now();
-    const cutoff = now - 1000;
-    let i = 0;
-    while (i < this._timestamps.length && this._timestamps[i] < cutoff) i++;
-    if (i > 0) this._timestamps.splice(0, i);
-
-    if (this._timestamps.length >= this._maxPerSec) return false;
-    this._timestamps.push(now);
-    return true;
-  }
-}
-
 class AudioEngine {
   constructor(config) {
     this._config = config;
     this._started = false;
-    this._synth = null;
-    this._panner = null;
+    this._buySynth = null;
+    this._sellSynth = null;
+    this._buyPanner = null;
+    this._sellPanner = null;
     this._volume = null;
-    this._scheduler = new NoteScheduler(config.get("maxNotesPerSec"));
+    this._nextNoteTime = 0;
+    this._queue = [];
+    this._drainHandle = null;
 
     config.onChange((key, value) => {
-      if (key === "maxNotesPerSec") this._scheduler.maxPerSec = value;
       if (key === "masterVolume" && this._volume) this._volume.volume.value = value;
-      if (key === "synthType") this._rebuildSynth();
-      if (["attack", "decay", "sustain", "release"].includes(key)) this._updateEnvelope();
+      if (key === "synthType") this._rebuildSynths();
+      if (["attack", "decay", "sustain", "release"].includes(key)) this._updateEnvelopes();
     });
   }
 
@@ -82,71 +62,118 @@ class AudioEngine {
     await Tone.start();
 
     this._volume = new Tone.Volume(this._config.get("masterVolume")).toDestination();
-    this._panner = new Tone.Panner(0).connect(this._volume);
-    this._buildSynth();
+    this._buyPanner = new Tone.Panner(this._config.get("panWidth")).connect(this._volume);
+    this._sellPanner = new Tone.Panner(-this._config.get("panWidth")).connect(this._volume);
+
+    this._config.onChange((key, value) => {
+      if (key === "panWidth") {
+        if (this._buyPanner) this._buyPanner.pan.value = value;
+        if (this._sellPanner) this._sellPanner.pan.value = -value;
+      }
+    });
+
+    this._buildSynths();
+    this._nextNoteTime = Tone.now();
     this._started = true;
+    this._startDrain();
   }
 
   stop() {
-    if (this._synth) {
-      this._synth.dispose();
-      this._synth = null;
-    }
-    if (this._panner) {
-      this._panner.dispose();
-      this._panner = null;
-    }
-    if (this._volume) {
-      this._volume.dispose();
-      this._volume = null;
-    }
     this._started = false;
-  }
-
-  _buildSynth() {
-    const type = this._config.get("synthType");
-    this._synth = new Tone.PolySynth(Tone.Synth, {
-      maxPolyphony: 16,
-      oscillator: { type },
-      envelope: {
-        attack: this._config.get("attack"),
-        decay: this._config.get("decay"),
-        sustain: this._config.get("sustain"),
-        release: this._config.get("release"),
-      },
-    }).connect(this._panner);
-  }
-
-  _rebuildSynth() {
-    if (!this._started) return;
-    if (this._synth) this._synth.dispose();
-    this._buildSynth();
-  }
-
-  _updateEnvelope() {
-    if (!this._synth) return;
-    this._synth.set({
-      envelope: {
-        attack: this._config.get("attack"),
-        decay: this._config.get("decay"),
-        sustain: this._config.get("sustain"),
-        release: this._config.get("release"),
-      },
+    if (this._drainHandle) {
+      cancelAnimationFrame(this._drainHandle);
+      this._drainHandle = null;
+    }
+    this._queue.length = 0;
+    [this._buySynth, this._sellSynth, this._buyPanner, this._sellPanner, this._volume].forEach((n) => {
+      if (n) n.dispose();
     });
+    this._buySynth = this._sellSynth = this._buyPanner = this._sellPanner = this._volume = null;
+  }
+
+  _buildSynths() {
+    const opts = {
+      maxPolyphony: 8,
+      oscillator: { type: this._config.get("synthType") },
+      envelope: {
+        attack: this._config.get("attack"),
+        decay: this._config.get("decay"),
+        sustain: this._config.get("sustain"),
+        release: this._config.get("release"),
+      },
+    };
+    this._buySynth = new Tone.PolySynth(Tone.Synth, opts).connect(this._buyPanner);
+    this._sellSynth = new Tone.PolySynth(Tone.Synth, opts).connect(this._sellPanner);
+  }
+
+  _rebuildSynths() {
+    if (!this._started) return;
+    if (this._buySynth) this._buySynth.dispose();
+    if (this._sellSynth) this._sellSynth.dispose();
+    this._buildSynths();
+  }
+
+  _updateEnvelopes() {
+    const env = {
+      attack: this._config.get("attack"),
+      decay: this._config.get("decay"),
+      sustain: this._config.get("sustain"),
+      release: this._config.get("release"),
+    };
+    if (this._buySynth) this._buySynth.set({ envelope: env });
+    if (this._sellSynth) this._sellSynth.set({ envelope: env });
   }
 
   playTrade(trade) {
-    if (!this._started || !this._synth) return;
+    if (!this._started) return;
     if (trade.quantity < this._config.get("minTradeSize")) return;
-    if (!this._scheduler.allow()) return;
 
-    const freq = trade.isSell ? 293.66 : 440; // D4 for sell, A4 for buy
+    const maxQueued = this._config.get("maxNotesPerSec");
+    if (this._queue.length >= maxQueued) return;
+
+    this._queue.push(trade);
+  }
+
+  _startDrain() {
+    const drain = () => {
+      if (!this._started) return;
+
+      const now = Tone.now();
+      const gap = this._config.get("noteGap");
+
+      // if we've fallen behind, snap forward
+      if (this._nextNoteTime < now) {
+        this._nextNoteTime = now;
+      }
+
+      // schedule notes that fit within a short lookahead window
+      const lookahead = 0.2;
+      while (this._queue.length > 0 && this._nextNoteTime < now + lookahead) {
+        const trade = this._queue.shift();
+        this._scheduleNote(trade, this._nextNoteTime);
+        const dur = this._mapDuration(trade.quantity);
+        this._nextNoteTime += dur + gap;
+      }
+
+      // if queue is overflowing, drop oldest trades
+      const maxQueued = this._config.get("maxNotesPerSec");
+      if (this._queue.length > maxQueued) {
+        this._queue.splice(0, this._queue.length - maxQueued);
+      }
+
+      this._drainHandle = requestAnimationFrame(drain);
+    };
+    this._drainHandle = requestAnimationFrame(drain);
+  }
+
+  _scheduleNote(trade, time) {
+    const freq = trade.isSell ? 293.66 : 440;
     const vol = this._mapVolume(trade.quantity);
     const dur = this._mapDuration(trade.quantity);
-    const pan = trade.isSell ? -this._config.get("panWidth") : this._config.get("panWidth");
+    const gain = this._dbToGain(vol);
+    const synth = trade.isSell ? this._sellSynth : this._buySynth;
 
-    this._panner.pan.value = pan;
-    this._synth.triggerAttackRelease(freq, dur, Tone.now(), this._dbToGain(vol));
+    synth.triggerAttackRelease(freq, dur, time, gain);
   }
 
   _mapVolume(quantity) {

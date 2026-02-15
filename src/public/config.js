@@ -19,7 +19,8 @@ const CONFIG_SCHEMA = {
     params: {
       durationMin: { default: 0.05, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Min Duration" },
       durationMax: { default: 0.4, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Max Duration" },
-      maxNotesPerSec: { default: 30, min: 5, max: 100, step: 1, unit: "n/s", label: "Max Notes/sec" },
+      noteGap: { default: 0.03, min: 0, max: 0.5, step: 0.01, unit: "s", label: "Note Gap" },
+      maxNotesPerSec: { default: 30, min: 5, max: 100, step: 1, unit: "n/s", label: "Max Queue" },
     },
   },
   synth: {
