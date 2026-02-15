@@ -1,0 +1,10 @@
+{
+  "name": "audio-trading",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "bun --hot src/server.ts"
+  },
+  "devDependencies": {
+    "bun-types": "1.3.9"
+  }
+}

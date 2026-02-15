@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Trading</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>BTC-USDT Audio</h1>
+    <button id="start-btn">Start Audio</button>
+  </header>
+
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-dot" id="conn-dot"></span>
+      <span class="status-label">Feed</span>
+      <span class="status-value" id="conn-status">disconnected</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Price</span>
+      <span class="status-value" id="stat-price">--</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Last Size</span>
+      <span class="status-value" id="stat-size">--</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Trades/s</span>
+      <span class="status-value" id="stat-rate">--</span>
+    </div>
+  </div>
+
+  <main>
+    <div class="config-panel" id="config-panel"></div>
+    <div class="viz-area">
+      <div class="viz-placeholder">
+        Click "Start Audio" to begin sonification<br>
+        Adjust parameters in the left panel
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.min.js"></script>
+  <script src="config.js"></script>
+  <script src="audio-engine.js"></script>
+  <script>
+    const config = new ConfigManager();
+    const engine = new AudioEngine(config);
+
+    config.buildUI(document.getElementById("config-panel"));
+
+    // status display
+    const elPrice = document.getElementById("stat-price");
+    const elSize = document.getElementById("stat-size");
+    const elRate = document.getElementById("stat-rate");
+    const elConnDot = document.getElementById("conn-dot");
+    const elConnStatus = document.getElementById("conn-status");
+
+    let tradeCount = 0;
+    setInterval(() => {
+      elRate.textContent = tradeCount;
+      tradeCount = 0;
+    }, 1000);
+
+    // start button
+    const startBtn = document.getElementById("start-btn");
+    startBtn.addEventListener("click", async () => {
+      if (!engine.started) {
+        await engine.start();
+        startBtn.textContent = "Stop Audio";
+        startBtn.classList.add("active");
+      } else {
+        engine.stop();
+        startBtn.textContent = "Start Audio";
+        startBtn.classList.remove("active");
+      }
+    });
+
+    // websocket
+    function connectWS() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      const ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "status") {
+          elConnDot.classList.toggle("connected", msg.connected);
+          elConnStatus.textContent = msg.connected ? "connected" : "disconnected";
+          return;
+        }
+
+        if (msg.type === "trade") {
+          const trade = msg.data;
+          tradeCount++;
+          elPrice.textContent = trade.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          elSize.textContent = trade.quantity.toFixed(5);
+          engine.playTrade(trade);
+        }
+      };
+
+      ws.onclose = () => {
+        elConnDot.classList.remove("connected");
+        elConnStatus.textContent = "reconnecting...";
+        setTimeout(connectWS, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connectWS();
+  </script>
+</body>
+</html>

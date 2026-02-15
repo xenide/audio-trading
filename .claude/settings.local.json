@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading log --oneline)",
+      "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading branch -a)",
+      "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading remote:*)",
+      "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading show HEAD)",
+      "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading status)",
+      "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading log --oneline -10)",
+      "Bash(bun add:*)",
+      "Bash(timeout:*)"
+    ]
+  }
+}
