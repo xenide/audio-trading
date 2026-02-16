@@ -39,6 +39,23 @@ const CONFIG_SCHEMA = {
       minTradeSize: { default: 0.001, min: 0, max: 10, step: 0.001, unit: "BTC", label: "Min Trade Size" },
     },
   },
+  whales: {
+    label: "Whales",
+    params: {
+      whaleEnabled: { default: true, options: [true, false], label: "Enabled" },
+      whaleTier1: { default: 0.5, min: 0.01, max: 1, step: 0.01, unit: "BTC", label: "Large Threshold", log: true },
+      whaleTier2: { default: 2.0, min: 0.1, max: 50, step: 0.1, unit: "BTC", label: "Whale Threshold", log: true },
+    },
+  },
+  imbalance: {
+    label: "Imbalance",
+    params: {
+      imbalanceEnabled: { default: true, options: [true, false], label: "Enabled" },
+      imbalanceWindow: { default: 10, min: 1, max: 60, step: 1, unit: "s", label: "Window" },
+      imbalanceVolume: { default: -20, min: -60, max: 0, step: 1, unit: "dB", label: "Drone Volume" },
+      imbalanceFreqCenter: { default: 160, min: 80, max: 300, step: 5, unit: "Hz", label: "Drone Freq" },
+    },
+  },
 };
 
 class ConfigManager {
@@ -109,7 +126,28 @@ class ConfigManager {
             </select>
           `;
           row.querySelector("select").addEventListener("change", (e) => {
-            this.set(key, e.target.value);
+            let v = e.target.value;
+            if (v === "true") v = true;
+            else if (v === "false") v = false;
+            this.set(key, v);
+          });
+        } else if (schema.log) {
+          const val = this.get(key);
+          const toSlider = (v) => 1000 * Math.log(v / schema.min) / Math.log(schema.max / schema.min);
+          const fromSlider = (s) => schema.min * Math.pow(schema.max / schema.min, s / 1000);
+          const fmt = (v) => {
+            const rounded = parseFloat(v.toPrecision(3));
+            return `${rounded}${schema.unit ? " " + schema.unit : ""}`;
+          };
+          row.innerHTML = `
+            <label>${schema.label}</label>
+            <input type="range" data-key="${key}" min="0" max="1000" step="1" value="${toSlider(val)}">
+            <span class="config-value" data-display="${key}">${fmt(val)}</span>
+          `;
+          row.querySelector("input").addEventListener("input", (e) => {
+            const v = fromSlider(parseFloat(e.target.value));
+            this.set(key, v);
+            row.querySelector(`[data-display="${key}"]`).textContent = fmt(v);
           });
         } else {
           const val = this.get(key);
