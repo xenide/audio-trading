@@ -43,8 +43,8 @@ const CONFIG_SCHEMA = {
     label: "Whales",
     params: {
       whaleEnabled: { default: true, options: [true, false], label: "Enabled" },
-      whaleTier1: { default: 0.5, min: 0.01, max: 50, step: 0.01, unit: "BTC", label: "Large Threshold" },
-      whaleTier2: { default: 2.0, min: 0.1, max: 100, step: 0.1, unit: "BTC", label: "Whale Threshold" },
+      whaleTier1: { default: 0.5, min: 0.01, max: 1, step: 0.01, unit: "BTC", label: "Large Threshold", log: true },
+      whaleTier2: { default: 2.0, min: 0.1, max: 50, step: 0.1, unit: "BTC", label: "Whale Threshold", log: true },
     },
   },
   imbalance: {
@@ -130,6 +130,24 @@ class ConfigManager {
             if (v === "true") v = true;
             else if (v === "false") v = false;
             this.set(key, v);
+          });
+        } else if (schema.log) {
+          const val = this.get(key);
+          const toSlider = (v) => 1000 * Math.log(v / schema.min) / Math.log(schema.max / schema.min);
+          const fromSlider = (s) => schema.min * Math.pow(schema.max / schema.min, s / 1000);
+          const fmt = (v) => {
+            const rounded = parseFloat(v.toPrecision(3));
+            return `${rounded}${schema.unit ? " " + schema.unit : ""}`;
+          };
+          row.innerHTML = `
+            <label>${schema.label}</label>
+            <input type="range" data-key="${key}" min="0" max="1000" step="1" value="${toSlider(val)}">
+            <span class="config-value" data-display="${key}">${fmt(val)}</span>
+          `;
+          row.querySelector("input").addEventListener("input", (e) => {
+            const v = fromSlider(parseFloat(e.target.value));
+            this.set(key, v);
+            row.querySelector(`[data-display="${key}"]`).textContent = fmt(v);
           });
         } else {
           const val = this.get(key);
