@@ -43,8 +43,8 @@ const CONFIG_SCHEMA = {
     label: "Whales",
     params: {
       whaleEnabled: { default: true, options: [true, false], label: "Enabled" },
-      whaleTier1: { default: 0.5, min: 0.01, max: 1, step: 0.01, unit: "BTC", label: "Large Threshold", log: true },
-      whaleTier2: { default: 2.0, min: 0.1, max: 50, step: 0.1, unit: "BTC", label: "Whale Threshold", log: true },
+      whaleTier1: { default: 0.1, min: 0.01, max: 1, step: 0.01, unit: "BTC", label: "Large Threshold", log: true },
+      whaleTier2: { default: 1.0, min: 0.1, max: 50, step: 0.1, unit: "BTC", label: "Whale Threshold", log: true },
     },
   },
   imbalance: {
@@ -52,7 +52,7 @@ const CONFIG_SCHEMA = {
     params: {
       imbalanceEnabled: { default: true, options: [true, false], label: "Enabled" },
       imbalanceWindow: { default: 10, min: 1, max: 60, step: 1, unit: "s", label: "Window" },
-      imbalanceVolume: { default: -20, min: -60, max: 0, step: 1, unit: "dB", label: "Drone Volume" },
+      imbalanceVolume: { default: -38, min: -60, max: 0, step: 1, unit: "dB", label: "Drone Volume" },
       imbalanceFreqCenter: { default: 160, min: 80, max: 300, step: 5, unit: "Hz", label: "Drone Freq" },
     },
   },

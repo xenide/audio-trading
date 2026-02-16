@@ -1,7 +1,7 @@
 import { type ServerWebSocket } from "bun";
 import type { BinanceTrade, TradeEvent, ServerMessage } from "./types";
 
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT || "3000");
 const BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
 const RECONNECT_DELAY = 3000;
 const PUBLIC_DIR = import.meta.dir + "/public";
@@ -58,6 +58,7 @@ const MIME_TYPES: Record<string, string> = {
 
 const server = Bun.serve<{}>({
   port: PORT,
+  hostname: "0.0.0.0",
   async fetch(req, server) {
     const url = new URL(req.url);
 
