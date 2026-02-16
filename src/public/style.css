@@ -30,6 +30,12 @@ header h1 {
   letter-spacing: 0.5px;
 }
 
+.slogan {
+  font-size: 11px;
+  color: #505068;
+  letter-spacing: 0.3px;
+}
+
 #start-btn {
   background: #1a6b3c;
   color: #e0ffe8;
@@ -104,6 +110,27 @@ main {
   padding: 16px;
   background: #0c0c13;
 }
+
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #606070;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.advanced-toggle input {
+  accent-color: #4080c0;
+  cursor: pointer;
+}
+
+.config-row.advanced,
+.config-group.all-advanced { display: none; }
+
+.show-advanced .config-row.advanced { display: grid; }
+.show-advanced .config-group.all-advanced { display: block; }
 
 .config-group {
   margin-bottom: 20px;

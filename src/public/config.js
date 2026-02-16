@@ -2,35 +2,35 @@ const CONFIG_SCHEMA = {
   volume: {
     label: "Volume",
     params: {
-      volumeMin: { default: -30, min: -60, max: 6, step: 1, unit: "dB", label: "Min Volume" },
-      volumeMax: { default: 0, min: -60, max: 6, step: 1, unit: "dB", label: "Max Volume" },
-      volumeQuantityRef: { default: 1.0, min: 0.001, max: 10, step: 0.001, unit: "BTC", label: "Ref Quantity" },
       masterVolume: { default: -6, min: -40, max: 6, step: 1, unit: "dB", label: "Master Volume" },
+      volumeMin: { default: -30, min: -60, max: 6, step: 1, unit: "dB", label: "Min Volume", advanced: true },
+      volumeMax: { default: 0, min: -60, max: 6, step: 1, unit: "dB", label: "Max Volume", advanced: true },
+      volumeQuantityRef: { default: 1.0, min: 0.001, max: 10, step: 0.001, unit: "BTC", label: "Ref Quantity", advanced: true },
     },
   },
   spatial: {
     label: "Spatial",
     params: {
-      panWidth: { default: 0.8, min: 0, max: 1.0, step: 0.05, unit: "", label: "Stereo Width" },
+      panWidth: { default: 0.8, min: 0, max: 1.0, step: 0.05, unit: "", label: "Stereo Width", advanced: true },
     },
   },
   timing: {
     label: "Timing",
     params: {
-      durationMin: { default: 0.05, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Min Duration" },
-      durationMax: { default: 0.4, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Max Duration" },
-      noteGap: { default: 0.03, min: 0, max: 0.5, step: 0.01, unit: "s", label: "Note Gap" },
-      maxNotesPerSec: { default: 30, min: 5, max: 100, step: 1, unit: "n/s", label: "Max Queue" },
+      durationMin: { default: 0.05, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Min Duration", advanced: true },
+      durationMax: { default: 0.4, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Max Duration", advanced: true },
+      noteGap: { default: 0.03, min: 0, max: 0.5, step: 0.01, unit: "s", label: "Note Gap", advanced: true },
+      maxNotesPerSec: { default: 30, min: 5, max: 100, step: 1, unit: "n/s", label: "Max Queue", advanced: true },
     },
   },
   synth: {
     label: "Synth",
     params: {
       synthType: { default: "sine", options: ["sine", "triangle", "square", "sawtooth", "fmsine", "amsine"], label: "Waveform" },
-      attack: { default: 0.01, min: 0.001, max: 1.0, step: 0.001, unit: "s", label: "Attack" },
-      decay: { default: 0.1, min: 0.01, max: 1.0, step: 0.01, unit: "s", label: "Decay" },
-      sustain: { default: 0.3, min: 0, max: 1.0, step: 0.01, unit: "", label: "Sustain" },
-      release: { default: 0.2, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Release" },
+      attack: { default: 0.01, min: 0.001, max: 1.0, step: 0.001, unit: "s", label: "Attack", advanced: true },
+      decay: { default: 0.1, min: 0.01, max: 1.0, step: 0.01, unit: "s", label: "Decay", advanced: true },
+      sustain: { default: 0.3, min: 0, max: 1.0, step: 0.01, unit: "", label: "Sustain", advanced: true },
+      release: { default: 0.2, min: 0.01, max: 2.0, step: 0.01, unit: "s", label: "Release", advanced: true },
     },
   },
   filter: {
@@ -43,17 +43,17 @@ const CONFIG_SCHEMA = {
     label: "Whales",
     params: {
       whaleEnabled: { default: true, options: [true, false], label: "Enabled" },
-      whaleTier1: { default: 0.1, min: 0.01, max: 1, step: 0.01, unit: "BTC", label: "Large Threshold", log: true },
-      whaleTier2: { default: 1.0, min: 0.1, max: 50, step: 0.1, unit: "BTC", label: "Whale Threshold", log: true },
+      whaleTier1: { default: 0.1, min: 0.01, max: 1, step: 0.01, unit: "BTC", label: "Large Threshold", log: true, advanced: true },
+      whaleTier2: { default: 1.0, min: 0.1, max: 50, step: 0.1, unit: "BTC", label: "Whale Threshold", log: true, advanced: true },
     },
   },
   imbalance: {
     label: "Imbalance",
     params: {
       imbalanceEnabled: { default: true, options: [true, false], label: "Enabled" },
-      imbalanceWindow: { default: 10, min: 1, max: 60, step: 1, unit: "s", label: "Window" },
       imbalanceVolume: { default: -38, min: -60, max: 0, step: 1, unit: "dB", label: "Drone Volume" },
-      imbalanceFreqCenter: { default: 160, min: 80, max: 300, step: 5, unit: "Hz", label: "Drone Freq" },
+      imbalanceWindow: { default: 10, min: 1, max: 60, step: 1, unit: "s", label: "Window", advanced: true },
+      imbalanceFreqCenter: { default: 160, min: 80, max: 300, step: 5, unit: "Hz", label: "Drone Freq", advanced: true },
     },
   },
 };
@@ -109,14 +109,28 @@ class ConfigManager {
   buildUI(container) {
     container.innerHTML = "";
 
+    const showAdvanced = localStorage.getItem("audio-trading-show-advanced") === "true";
+    if (showAdvanced) container.classList.add("show-advanced");
+    else container.classList.remove("show-advanced");
+
+    const toggle = document.createElement("label");
+    toggle.className = "advanced-toggle";
+    toggle.innerHTML = `<input type="checkbox" ${showAdvanced ? "checked" : ""}> Show Advanced`;
+    toggle.querySelector("input").addEventListener("change", (e) => {
+      container.classList.toggle("show-advanced", e.target.checked);
+      localStorage.setItem("audio-trading-show-advanced", e.target.checked);
+    });
+    container.appendChild(toggle);
+
     for (const [groupKey, group] of Object.entries(CONFIG_SCHEMA)) {
+      const allAdvanced = Object.values(group.params).every((s) => s.advanced);
       const section = document.createElement("div");
-      section.className = "config-group";
+      section.className = "config-group" + (allAdvanced ? " all-advanced" : "");
       section.innerHTML = `<h3>${group.label}</h3>`;
 
       for (const [key, schema] of Object.entries(group.params)) {
         const row = document.createElement("div");
-        row.className = "config-row";
+        row.className = "config-row" + (schema.advanced ? " advanced" : "");
 
         if (schema.options) {
           row.innerHTML = `
