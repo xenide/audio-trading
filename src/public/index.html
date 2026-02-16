@@ -48,6 +48,9 @@
     const engine = new AudioEngine(config);
     const viz = new TradeViz(document.getElementById("viz-canvas"));
 
+    viz.setImbalanceTracker(engine.imbalanceTracker);
+    engine.onWhale = (trade) => viz.addWhaleAlert(trade);
+
     config.buildUI(document.getElementById("config-panel"));
 
     // status display

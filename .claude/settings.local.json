@@ -9,7 +9,10 @@
       "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading status)",
       "Bash(git -C /Users/alexlau/ghq/github.com/xenide/audio-trading log --oneline -10)",
       "Bash(bun add:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git checkout:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs:*)"
     ]
   }
 }
